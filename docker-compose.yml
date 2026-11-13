@@ -1,0 +1,43 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: studio
+      POSTGRES_PASSWORD: studio
+      POSTGRES_DB: producto
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U studio"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./api
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      AUTH_SECRET: "cambiar_por_un_valor_secreto_seguro"
+      DATABASE_URL: "postgresql+psycopg://studio:studio@db:5432/producto"
+    ports:
+      - "8000:8000"
+
+  web:
+    build:
+      context: .
+      dockerfile: web.Dockerfile
+    restart: always
+    depends_on:
+      - api
+    ports:
+      - "8080:80"
+
+volumes:
+  db_data: {}
